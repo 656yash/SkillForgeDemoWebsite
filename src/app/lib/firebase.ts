@@ -122,7 +122,6 @@ export async function registerUser(email: string, password: string, displayName?
     };
 
     await setDoc(doc(db, 'users', user.uid), userProfile);
-    console.log('[v0] User profile created in Firestore');
 
     return user;
   } catch (error: any) {

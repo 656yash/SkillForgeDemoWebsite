@@ -42,7 +42,6 @@ export function Signup() {
       };
 
       setError(errorMessages[errorCode] || "Signup failed. Please try again");
-      console.error("[v0] Signup error:", err);
     } finally {
       setIsLoading(false);
     }
