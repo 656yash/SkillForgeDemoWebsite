@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link } from "react-router";
 import {
   Star,
@@ -26,9 +26,14 @@ import {
   Zap,
   Globe
 } from "lucide-react";
+import { trackPageView } from "../lib/firebase";
 
 export function Home() {
   const [openFaq, setOpenFaq] = useState<number | null>(null);
+
+  useEffect(() => {
+    trackPageView("Home");
+  }, []);
 
   const courses = [
     {

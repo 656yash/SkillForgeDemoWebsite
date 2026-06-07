@@ -1,7 +1,43 @@
-import { Link } from "react-router";
-import { GraduationCap, Mail, Lock, ArrowRight } from "lucide-react";
+import { Link, useNavigate } from "react-router";
+import { GraduationCap, Mail, Lock, ArrowRight, AlertCircle } from "lucide-react";
+import { useState } from "react";
+import { loginUser, trackUserLogin } from "../lib/firebase";
 
 export function Login() {
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
+  const navigate = useNavigate();
+
+  const handleLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError("");
+    setIsLoading(true);
+
+    try {
+      await loginUser(email, password);
+      trackUserLogin("email");
+      navigate("/dashboard");
+    } catch (err: any) {
+      const errorCode = err.code || "unknown-error";
+      
+      // User-friendly error messages
+      const errorMessages: Record<string, string> = {
+        "auth/invalid-email": "Please enter a valid email address",
+        "auth/user-not-found": "No account found with this email",
+        "auth/wrong-password": "Incorrect password. Please try again",
+        "auth/user-disabled": "This account has been disabled",
+        "auth/too-many-requests": "Too many failed login attempts. Please try again later",
+      };
+
+      setError(errorMessages[errorCode] || "Login failed. Please check your credentials");
+      console.error("[v0] Login error:", err);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-secondary via-purple-900 to-secondary flex items-center justify-center px-4 sm:px-6 lg:px-8">
       <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1683064325134-3acfdef9c6d7?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=1920')] opacity-10 bg-cover bg-center" />
@@ -20,8 +56,16 @@ export function Login() {
             <p className="text-white/70">Sign in to continue your learning journey</p>
           </div>
 
+          {/* Error Message */}
+          {error && (
+            <div className="mb-6 p-4 bg-red-500/10 border border-red-500/30 rounded-lg flex gap-3">
+              <AlertCircle className="w-5 h-5 text-red-400 flex-shrink-0 mt-0.5" />
+              <p className="text-sm text-red-200">{error}</p>
+            </div>
+          )}
+
           {/* Form */}
-          <form className="space-y-6">
+          <form onSubmit={handleLogin} className="space-y-6">
             <div>
               <label htmlFor="email" className="block text-sm font-medium text-white mb-2">
                 Email Address
@@ -32,6 +76,9 @@ export function Login() {
                   id="email"
                   type="email"
                   placeholder="you@example.com"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  required
                   className="w-full pl-12 pr-4 py-3 bg-white/10 border border-white/20 rounded-lg text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent backdrop-blur-sm"
                 />
               </div>
@@ -47,6 +94,9 @@ export function Login() {
                   id="password"
                   type="password"
                   placeholder="••••••••"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  required
                   className="w-full pl-12 pr-4 py-3 bg-white/10 border border-white/20 rounded-lg text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent backdrop-blur-sm"
                 />
               </div>
@@ -64,10 +114,11 @@ export function Login() {
 
             <button
               type="submit"
-              className="w-full py-4 bg-primary text-white rounded-lg hover:bg-primary/90 transition-all font-medium shadow-lg shadow-primary/20 flex items-center justify-center gap-2"
+              disabled={isLoading}
+              className="w-full py-4 bg-primary text-white rounded-lg hover:bg-primary/90 disabled:bg-primary/50 disabled:cursor-not-allowed transition-all font-medium shadow-lg shadow-primary/20 flex items-center justify-center gap-2"
             >
-              Sign In
-              <ArrowRight className="w-5 h-5" />
+              {isLoading ? "Signing In..." : "Sign In"}
+              {!isLoading && <ArrowRight className="w-5 h-5" />}
             </button>
           </form>
 
