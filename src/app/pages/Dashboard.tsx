@@ -1,4 +1,5 @@
-import { Link } from "react-router";
+import { Link, useNavigate } from "react-router";
+import { useEffect, useState } from "react";
 import {
   BookOpen,
   Clock,
@@ -11,10 +12,85 @@ import {
   BarChart3,
   Trophy,
   Flame,
-  Users
+  Users,
+  LogOut
 } from "lucide-react";
+import { onAuthChange, logoutUser } from "../lib/firebase";
 
 export function Dashboard() {
+  const navigate = useNavigate();
+  const [user, setUser] = useState<any>(null);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    console.log("[v0] Dashboard: Setting up auth listener");
+    
+    // First check localStorage for demo user
+    const storedUser = localStorage.getItem("skillforge_user");
+    if (storedUser) {
+      try {
+        const parsedUser = JSON.parse(storedUser);
+        console.log("[v0] Found stored user:", parsedUser.email);
+        setUser(parsedUser);
+        setIsLoading(false);
+        return;
+      } catch (err) {
+        console.log("[v0] Failed to parse stored user");
+      }
+    }
+
+    // Then check Firebase Auth
+    const unsubscribe = onAuthChange((currentUser) => {
+      console.log("[v0] Dashboard: Firebase auth state changed, user:", currentUser?.email);
+      if (currentUser) {
+        setUser(currentUser);
+        setIsLoading(false);
+      } else {
+        console.log("[v0] Dashboard: No user found, checking localStorage...");
+        const stored = localStorage.getItem("skillforge_user");
+        if (stored) {
+          const parsedUser = JSON.parse(stored);
+          setUser(parsedUser);
+          setIsLoading(false);
+        } else {
+          console.log("[v0] No user found anywhere, redirecting to login");
+          navigate("/login");
+        }
+      }
+    });
+
+    return () => unsubscribe();
+  }, [navigate]);
+
+  const handleLogout = async () => {
+    try {
+      // Clear localStorage
+      localStorage.removeItem("skillforge_user");
+      
+      // Try to logout from Firebase
+      try {
+        await logoutUser();
+      } catch (firebaseErr) {
+        console.warn("[v0] Firebase logout error (but continuing):", firebaseErr);
+      }
+      
+      console.log("[v0] Dashboard: Logged out successfully");
+      navigate("/");
+    } catch (err) {
+      console.error("[v0] Dashboard: Logout error:", err);
+    }
+  };
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-muted/30 flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-12 h-12 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-muted-foreground">Loading your dashboard...</p>
+        </div>
+      </div>
+    );
+  }
   const stats = [
     {
       label: "Courses Completed",
@@ -95,9 +171,19 @@ export function Dashboard() {
     <div className="min-h-screen bg-muted/30 pt-16">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Header */}
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-secondary mb-2">Welcome back, Alex! 👋</h1>
-          <p className="text-muted-foreground">Here's your learning progress and what's next</p>
+        <div className="mb-8 flex items-start justify-between">
+          <div>
+            <h1 className="text-3xl font-bold text-secondary mb-2">Welcome back, {user?.email?.split('@')[0]}! 👋</h1>
+            <p className="text-muted-foreground">Here's your learning progress and what's next</p>
+            <p className="text-xs text-muted-foreground mt-2">Logged in as: {user?.email}</p>
+          </div>
+          <button
+            onClick={handleLogout}
+            className="flex items-center gap-2 px-4 py-2 bg-red-500/10 hover:bg-red-500/20 border border-red-500/30 rounded-lg text-red-600 transition-colors"
+          >
+            <LogOut className="w-4 h-4" />
+            <span>Logout</span>
+          </button>
         </div>
 
         {/* Stats Grid */}
