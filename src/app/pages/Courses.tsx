@@ -1,10 +1,15 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link } from "react-router";
 import { Star, Clock, Users, GraduationCap, Search, Filter } from "lucide-react";
+import { trackPageView, trackCourseView } from "../lib/firebase";
 
 export function Courses() {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("All");
+
+  useEffect(() => {
+    trackPageView("Courses");
+  }, []);
 
   const categories = ["All", "Data Science", "Machine Learning", "AI Engineering", "Analytics", "Data Engineering"];
 
