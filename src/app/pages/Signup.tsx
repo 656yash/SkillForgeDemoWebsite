@@ -27,49 +27,22 @@ export function Signup() {
     }
 
     setIsLoading(true);
-    console.log("[v0] Starting signup for email:", email);
 
     try {
-      console.log("[v0] Calling registerUser for:", email);
-      const result = await registerUser(email, password);
-      console.log("[v0] Signup result:", result);
-      
-      // Store user info in localStorage as backup for demo purposes
-      const user = result?.user || { uid: Math.random().toString(), email };
-      localStorage.setItem("skillforge_user", JSON.stringify({
-        uid: user.uid,
-        email: user.email || email,
-        displayName: name,
-        createdAt: new Date().toISOString()
-      }));
-      
-      console.log("[v0] User stored, tracking analytics...");
+      const user = await registerUser(email, password, name);
       trackUserSignup("email");
-      
-      console.log("[v0] Navigating to dashboard...");
-      // Small delay to ensure state is updated
-      await new Promise(resolve => setTimeout(resolve, 500));
       navigate("/dashboard");
     } catch (err: any) {
       const errorCode = err?.code || "unknown-error";
-      console.error("[v0] Signup error:", err);
       
-      // For demo, just show error but continue to dash board
-      if (errorCode === "auth/email-already-in-use") {
-        setError("This email is already registered");
-      } else {
-        // Store user info anyway for demo purposes
-        localStorage.setItem("skillforge_user", JSON.stringify({
-          uid: Math.random().toString(),
-          email,
-          displayName: name,
-          createdAt: new Date().toISOString()
-        }));
-        
-        console.log("[v0] Proceeding to dashboard despite Firebase error");
-        await new Promise(resolve => setTimeout(resolve, 500));
-        navigate("/dashboard");
-      }
+      const errorMessages: Record<string, string> = {
+        "auth/email-already-in-use": "This email is already registered",
+        "auth/weak-password": "Password must be at least 6 characters",
+        "auth/invalid-email": "Please enter a valid email address",
+      };
+
+      setError(errorMessages[errorCode] || "Signup failed. Please try again");
+      console.error("[v0] Signup error:", err);
     } finally {
       setIsLoading(false);
     }

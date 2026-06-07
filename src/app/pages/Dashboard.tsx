@@ -15,47 +15,22 @@ import {
   Users,
   LogOut
 } from "lucide-react";
-import { onAuthChange, logoutUser } from "../lib/firebase";
+import { onAuthChange, logoutUser, getUserProfile, UserProfile } from "../lib/firebase";
 
 export function Dashboard() {
   const navigate = useNavigate();
-  const [user, setUser] = useState<any>(null);
+  const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    console.log("[v0] Dashboard: Setting up auth listener");
-    
-    // First check localStorage for demo user
-    const storedUser = localStorage.getItem("skillforge_user");
-    if (storedUser) {
-      try {
-        const parsedUser = JSON.parse(storedUser);
-        console.log("[v0] Found stored user:", parsedUser.email);
-        setUser(parsedUser);
-        setIsLoading(false);
-        return;
-      } catch (err) {
-        console.log("[v0] Failed to parse stored user");
-      }
-    }
-
-    // Then check Firebase Auth
-    const unsubscribe = onAuthChange((currentUser) => {
-      console.log("[v0] Dashboard: Firebase auth state changed, user:", currentUser?.email);
+    const unsubscribe = onAuthChange(async (currentUser) => {
       if (currentUser) {
-        setUser(currentUser);
+        // Fetch user profile from Firestore
+        const profile = await getUserProfile(currentUser.uid);
+        setUserProfile(profile);
         setIsLoading(false);
       } else {
-        console.log("[v0] Dashboard: No user found, checking localStorage...");
-        const stored = localStorage.getItem("skillforge_user");
-        if (stored) {
-          const parsedUser = JSON.parse(stored);
-          setUser(parsedUser);
-          setIsLoading(false);
-        } else {
-          console.log("[v0] No user found anywhere, redirecting to login");
-          navigate("/login");
-        }
+        navigate("/login");
       }
     });
 
@@ -64,17 +39,7 @@ export function Dashboard() {
 
   const handleLogout = async () => {
     try {
-      // Clear localStorage
-      localStorage.removeItem("skillforge_user");
-      
-      // Try to logout from Firebase
-      try {
-        await logoutUser();
-      } catch (firebaseErr) {
-        console.warn("[v0] Firebase logout error (but continuing):", firebaseErr);
-      }
-      
-      console.log("[v0] Dashboard: Logged out successfully");
+      await logoutUser();
       navigate("/");
     } catch (err) {
       console.error("[v0] Dashboard: Logout error:", err);
@@ -91,34 +56,51 @@ export function Dashboard() {
       </div>
     );
   }
+
+  if (!userProfile) {
+    return (
+      <div className="min-h-screen bg-muted/30 flex items-center justify-center">
+        <div className="text-center">
+          <p className="text-muted-foreground mb-4">Unable to load your profile</p>
+          <button
+            onClick={handleLogout}
+            className="px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 transition-all"
+          >
+            Back to Home
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   const stats = [
     {
       label: "Courses Completed",
-      value: "8",
+      value: userProfile.coursesCompleted.toString(),
       icon: BookOpen,
       color: "from-blue-400 to-blue-600",
-      change: "+2 this month"
+      change: "+0 this month"
     },
     {
       label: "Learning Hours",
-      value: "127",
+      value: userProfile.learningHours.toString(),
       icon: Clock,
       color: "from-green-400 to-green-600",
-      change: "+18 this week"
+      change: "+0 this week"
     },
     {
       label: "Certifications",
-      value: "5",
+      value: userProfile.certifications.toString(),
       icon: Award,
       color: "from-orange-400 to-orange-600",
-      change: "+1 this month"
+      change: "+0 this month"
     },
     {
       label: "Skill Progress",
-      value: "82%",
+      value: `${userProfile.skillProgress}%`,
       icon: TrendingUp,
       color: "from-purple-400 to-purple-600",
-      change: "+12% this month"
+      change: "+0% this month"
     }
   ];
 
@@ -126,46 +108,28 @@ export function Dashboard() {
     {
       id: 3,
       title: "Machine Learning A-Z",
-      progress: 65,
-      nextLesson: "Random Forest Algorithms",
-      timeLeft: "2.5 hours",
+      progress: 0,
+      nextLesson: "Introduction to ML",
+      timeLeft: "0 hours",
       thumbnail: "https://images.unsplash.com/photo-1526628953301-3e589a6a8b74?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=400"
-    },
-    {
-      id: 4,
-      title: "Generative AI Fundamentals",
-      progress: 30,
-      nextLesson: "Introduction to Transformers",
-      timeLeft: "1.5 hours",
-      thumbnail: "https://images.unsplash.com/photo-1644088379091-d574269d422f?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=400"
     }
   ];
 
-  const completedCourses = [
-    { title: "Python for Data Science", completedDate: "May 15, 2026", rating: 5 },
-    { title: "SQL Fundamentals", completedDate: "May 1, 2026", rating: 5 },
-    { title: "Statistics & Probability", completedDate: "April 20, 2026", rating: 4 }
-  ];
+  const completedCourses: any[] = [];
 
   const achievements = [
-    { title: "Fast Learner", description: "Completed 5 courses in one month", icon: Flame, color: "text-orange-500" },
-    { title: "Perfect Score", description: "Scored 100% on 3 assessments", icon: Trophy, color: "text-yellow-500" },
-    { title: "Consistent", description: "30-day learning streak", icon: Calendar, color: "text-green-500" },
-    { title: "Community Star", description: "Helped 10+ students", icon: Users, color: "text-blue-500" }
+    { title: "Getting Started", description: "Account created", icon: Flame, color: "text-orange-500" }
   ];
 
   const learningPath = [
-    { name: "Python Fundamentals", status: "completed", progress: 100 },
-    { name: "Statistics & Probability", status: "completed", progress: 100 },
-    { name: "Machine Learning", status: "in-progress", progress: 65 },
-    { name: "Deep Learning", status: "locked", progress: 0 },
+    { name: "Getting Started", status: "completed", progress: 100 },
+    { name: "Fundamentals", status: "in-progress", progress: userProfile.skillProgress },
+    { name: "Intermediate", status: "locked", progress: 0 },
+    { name: "Advanced", status: "locked", progress: 0 },
     { name: "Capstone Project", status: "locked", progress: 0 }
   ];
 
-  const upcomingSessions = [
-    { title: "1-on-1 Mentor Session", instructor: "Dr. Sarah Johnson", date: "June 10, 2026", time: "3:00 PM" },
-    { title: "ML Project Review", instructor: "Prof. David Kumar", date: "June 12, 2026", time: "5:00 PM" }
-  ];
+  const upcomingSessions: any[] = [];
 
   return (
     <div className="min-h-screen bg-muted/30 pt-16">
@@ -173,9 +137,9 @@ export function Dashboard() {
         {/* Header */}
         <div className="mb-8 flex items-start justify-between">
           <div>
-            <h1 className="text-3xl font-bold text-secondary mb-2">Welcome back, {user?.email?.split('@')[0]}! 👋</h1>
+            <h1 className="text-3xl font-bold text-secondary mb-2">Welcome back, {userProfile.displayName}! 👋</h1>
             <p className="text-muted-foreground">Here's your learning progress and what's next</p>
-            <p className="text-xs text-muted-foreground mt-2">Logged in as: {user?.email}</p>
+            <p className="text-xs text-muted-foreground mt-2">Logged in as: {userProfile.email}</p>
           </div>
           <button
             onClick={handleLogout}
@@ -256,8 +220,8 @@ export function Dashboard() {
             {/* Learning Path */}
             <div className="bg-white rounded-xl p-6 shadow-md border border-border">
               <div className="flex items-center justify-between mb-6">
-                <h2 className="text-xl font-semibold text-secondary">Data Scientist Path</h2>
-                <span className="text-sm text-primary font-medium">82% Complete</span>
+                <h2 className="text-xl font-semibold text-secondary">Your Learning Path</h2>
+                <span className="text-sm text-primary font-medium">{userProfile.skillProgress}% Complete</span>
               </div>
               <div className="space-y-4">
                 {learningPath.map((step, index) => (
@@ -348,6 +312,7 @@ export function Dashboard() {
             </div>
 
             {/* Upcoming Sessions */}
+            {upcomingSessions.length > 0 && (
             <div className="bg-white rounded-xl p-6 shadow-md border border-border">
               <h2 className="text-xl font-semibold text-secondary mb-6">Upcoming Sessions</h2>
               <div className="space-y-4">
@@ -372,6 +337,7 @@ export function Dashboard() {
                 Schedule New Session
               </button>
             </div>
+            )}
 
             {/* Quick Actions */}
             <div className="bg-gradient-to-br from-primary to-purple-600 rounded-xl p-6 text-white">
