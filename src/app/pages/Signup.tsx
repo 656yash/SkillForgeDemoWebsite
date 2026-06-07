@@ -29,11 +29,18 @@ export function Signup() {
     setIsLoading(true);
 
     try {
-      const user = await registerUser(email, password, name);
+      // Add a timeout to prevent infinite loading
+      const signupPromise = registerUser(email, password, name);
+      const timeoutPromise = new Promise((_, reject) =>
+        setTimeout(() => reject(new Error('Signup request timed out. Please check your internet connection.')), 15000)
+      );
+      
+      const user = await Promise.race([signupPromise, timeoutPromise]);
       trackUserSignup("email");
       navigate("/dashboard");
     } catch (err: any) {
       const errorCode = err?.code || "unknown-error";
+      const errorMessage = err?.message || "";
       
       const errorMessages: Record<string, string> = {
         "auth/email-already-in-use": "This email is already registered",
@@ -41,7 +48,7 @@ export function Signup() {
         "auth/invalid-email": "Please enter a valid email address",
       };
 
-      setError(errorMessages[errorCode] || "Signup failed. Please try again");
+      setError(errorMessages[errorCode] || errorMessage || "Signup failed. Please try again");
     } finally {
       setIsLoading(false);
     }

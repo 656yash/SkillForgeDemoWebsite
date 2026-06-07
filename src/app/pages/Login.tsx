@@ -16,11 +16,18 @@ export function Login() {
     setIsLoading(true);
 
     try {
-      await loginUser(email, password);
+      // Add a timeout to prevent infinite loading
+      const loginPromise = loginUser(email, password);
+      const timeoutPromise = new Promise((_, reject) =>
+        setTimeout(() => reject(new Error('Login request timed out. Please check your internet connection.')), 15000)
+      );
+      
+      await Promise.race([loginPromise, timeoutPromise]);
       trackUserLogin("email");
       navigate("/dashboard");
     } catch (err: any) {
       const errorCode = err.code || "unknown-error";
+      const errorMessage = err.message || "";
       
       // User-friendly error messages
       const errorMessages: Record<string, string> = {
@@ -31,7 +38,7 @@ export function Login() {
         "auth/too-many-requests": "Too many failed login attempts. Please try again later",
       };
 
-      setError(errorMessages[errorCode] || "Login failed. Please check your credentials");
+      setError(errorMessages[errorCode] || errorMessage || "Login failed. Please check your credentials");
       console.error("[v0] Login error:", err);
     } finally {
       setIsLoading(false);
