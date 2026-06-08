@@ -121,7 +121,13 @@ export async function registerUser(email: string, password: string, displayName?
       skillProgress: 0,
     };
 
-    await setDoc(doc(db, 'users', user.uid), userProfile);
+    try {
+      await setDoc(doc(db, 'users', user.uid), userProfile);
+    } catch (firestoreError: any) {
+      // If Firestore fails, the auth is still created, so continue
+      console.warn('[v0] Firestore profile creation failed:', firestoreError);
+      // Continue anyway - the user auth is still created
+    }
 
     return user;
   } catch (error: any) {
@@ -139,10 +145,29 @@ export async function loginUser(email: string, password: string) {
     const userCredential = await signInWithEmailAndPassword(auth, email, password);
     const user = userCredential.user;
 
-    // Update last login time
-    await updateDoc(doc(db, 'users', user.uid), {
-      lastLoginAt: new Date(),
-    });
+    // Try to update last login time, but don't fail if user profile doesn't exist
+    try {
+      await updateDoc(doc(db, 'users', user.uid), {
+        lastLoginAt: new Date(),
+      });
+    } catch (updateError: any) {
+      // If user profile doesn't exist, create it
+      if (updateError.code === 'not-found') {
+        const userProfile: UserProfile = {
+          uid: user.uid,
+          email: user.email || '',
+          displayName: user.displayName || 'User',
+          createdAt: new Date(),
+          lastLoginAt: new Date(),
+          coursesCompleted: 0,
+          learningHours: 0,
+          certifications: 0,
+          skillProgress: 0,
+        };
+        await setDoc(doc(db, 'users', user.uid), userProfile);
+      }
+      // If it's a different error, ignore it - login still succeeded
+    }
 
     return userCredential;
   } catch (error: any) {
