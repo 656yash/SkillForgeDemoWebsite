@@ -1,14 +1,35 @@
-import { Link } from "react-router";
+import { Link, useNavigate } from "react-router";
 import { Check, Zap, HelpCircle, ArrowRight } from "lucide-react";
 import { useState, useEffect } from "react";
 import { trackPricingPageView, trackPlanSelected } from "../lib/analyticsService";
+import { onAuthChange } from "../lib/firebase";
 
 export function Pricing() {
+  const navigate = useNavigate();
   const [billingCycle, setBillingCycle] = useState<"monthly" | "annual">("monthly");
+  const [user, setUser] = useState<any>(null);
 
   useEffect(() => {
     trackPricingPageView();
+    const unsubscribe = onAuthChange((authUser) => {
+      setUser(authUser);
+    });
+    return unsubscribe;
   }, []);
+
+  const handlePlanSelect = (planName: string, price: number) => {
+    // Track plan selection analytics
+    trackPlanSelected(planName, price);
+    
+    if (!user) {
+      // Redirect to login if not authenticated
+      navigate('/login');
+    } else {
+      // Redirect to courses page to browse courses
+      // In a real app, this would go to a checkout page with the plan details
+      navigate('/courses');
+    }
+  };
 
   const pricingPlans = [
     {
@@ -201,6 +222,7 @@ export function Pricing() {
                 </ul>
 
                 <button
+                  onClick={() => handlePlanSelect(plan.name, parseInt(getPrice(plan)))}
                   className={`w-full py-4 rounded-lg font-medium transition-all ${
                     plan.highlighted
                       ? "bg-primary text-white hover:bg-primary/90 shadow-lg shadow-primary/20"
