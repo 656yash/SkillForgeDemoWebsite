@@ -132,9 +132,12 @@ export function CourseDetail() {
                     <div className="text-sm text-muted-foreground">One-time payment</div>
                   </div>
 
-                  <button className="w-full py-4 bg-primary text-white rounded-lg hover:bg-primary/90 transition-all font-medium shadow-lg shadow-primary/20">
+                  <Link
+                    to="/signup"
+                    className="w-full py-4 bg-primary text-white rounded-lg hover:bg-primary/90 transition-all font-medium shadow-lg shadow-primary/20 flex items-center justify-center"
+                  >
                     Enroll Now
-                  </button>
+                  </Link>
 
                   <div className="space-y-3 pt-4 border-t border-border">
                     <div className="flex items-center gap-3 text-sm">
@@ -256,9 +259,12 @@ export function CourseDetail() {
           <h2 className="text-3xl font-bold mb-4">Ready to Start Learning?</h2>
           <p className="text-xl text-white/90 mb-8">Join {course.students.toLocaleString()} students already enrolled in this course</p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <button className="px-8 py-4 bg-white text-primary rounded-lg hover:bg-white/90 transition-all font-medium shadow-xl">
+            <Link
+              to="/signup"
+              className="px-8 py-4 bg-white text-primary rounded-lg hover:bg-white/90 transition-all font-medium shadow-xl"
+            >
               Enroll Now - {course.price}
-            </button>
+            </Link>
             <Link to="/courses" className="px-8 py-4 bg-white/10 backdrop-blur-sm text-white border-2 border-white rounded-lg hover:bg-white/20 transition-all font-medium">
               Explore More Courses
             </Link>

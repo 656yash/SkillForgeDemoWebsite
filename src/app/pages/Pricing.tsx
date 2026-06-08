@@ -195,15 +195,16 @@ export function Pricing() {
                   ))}
                 </ul>
 
-                <button
-                  className={`w-full py-4 rounded-lg font-medium transition-all ${
+                <Link
+                  to="/signup"
+                  className={`block w-full py-4 rounded-lg font-medium transition-all text-center ${
                     plan.highlighted
                       ? "bg-primary text-white hover:bg-primary/90 shadow-lg shadow-primary/20"
                       : "bg-secondary text-white hover:bg-secondary/90"
                   }`}
                 >
                   {plan.cta}
-                </button>
+                </Link>
               </div>
             ))}
           </div>

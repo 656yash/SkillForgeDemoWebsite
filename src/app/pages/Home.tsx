@@ -304,7 +304,7 @@ export function Home() {
                   Explore Courses
                   <ArrowRight className="w-5 h-5" />
                 </Link>
-                <Link to="/login" className="px-8 py-4 bg-white border-2 border-secondary text-secondary rounded-lg hover:bg-secondary hover:text-white transition-all">
+                <Link to="/signup" className="px-8 py-4 bg-white border-2 border-secondary text-secondary rounded-lg hover:bg-secondary hover:text-white transition-all">
                   Start Learning
                 </Link>
               </div>
