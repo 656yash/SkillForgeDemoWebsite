@@ -33,4 +33,21 @@ export default defineConfig({
 
   // File types to support raw imports. Never add .css, .tsx, or .ts files to this.
   assetsInclude: ['**/*.svg', '**/*.csv'],
+  
+  // Configure build for SPA routing
+  build: {
+    rollupOptions: {
+      output: {
+        // Ensure all assets are served from root
+        assetFileNames: 'assets/[name].[hash][extname]',
+        chunkFileNames: 'assets/[name].[hash].js',
+        entryFileNames: 'assets/[name].[hash].js',
+      },
+    },
+  },
+  
+  // Fallback for SPA routing
+  server: {
+    middlewareMode: false,
+  },
 })
