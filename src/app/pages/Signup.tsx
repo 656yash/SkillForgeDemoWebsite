@@ -37,7 +37,9 @@ export function Signup() {
       
       const user = await Promise.race([signupPromise, timeoutPromise]);
       trackUserSignup("email");
-      navigate("/dashboard");
+      // Small delay to ensure Firebase completes all operations before navigating
+      await new Promise(resolve => setTimeout(resolve, 500));
+      window.location.href = "/dashboard";
     } catch (err: any) {
       const errorCode = err?.code || "unknown-error";
       const errorMessage = err?.message || "";
@@ -49,7 +51,6 @@ export function Signup() {
       };
 
       setError(errorMessages[errorCode] || errorMessage || "Signup failed. Please try again");
-    } finally {
       setIsLoading(false);
     }
   };

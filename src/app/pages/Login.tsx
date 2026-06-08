@@ -24,7 +24,9 @@ export function Login() {
       
       await Promise.race([loginPromise, timeoutPromise]);
       trackUserLogin("email");
-      navigate("/dashboard");
+      // Small delay to ensure Firebase completes all operations before navigating
+      await new Promise(resolve => setTimeout(resolve, 500));
+      window.location.href = "/dashboard";
     } catch (err: any) {
       const errorCode = err.code || "unknown-error";
       const errorMessage = err.message || "";
@@ -40,7 +42,6 @@ export function Login() {
 
       setError(errorMessages[errorCode] || errorMessage || "Login failed. Please check your credentials");
       console.error("[v0] Login error:", err);
-    } finally {
       setIsLoading(false);
     }
   };
