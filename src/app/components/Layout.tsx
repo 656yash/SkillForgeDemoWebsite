@@ -48,7 +48,7 @@ export function Layout() {
                 Dashboard
               </Link>
               <Link
-                to="/login"
+                to="/signup"
                 className="px-6 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 transition-all"
               >
                 Start Learning
@@ -101,7 +101,7 @@ export function Layout() {
                   Dashboard
                 </Link>
                 <Link
-                  to="/login"
+                  to="/signup"
                   className="px-6 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 transition-all text-center"
                   onClick={() => setMobileMenuOpen(false)}
                 >
