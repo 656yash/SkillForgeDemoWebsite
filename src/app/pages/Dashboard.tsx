@@ -16,18 +16,40 @@ import {
   LogOut
 } from "lucide-react";
 import { onAuthChange, logoutUser, getUserProfile, UserProfile } from "../lib/firebase";
+import { getUserEnrollments, CourseEnrollment } from "../lib/enrollmentService";
+import { getUserAllCourseProgress, CourseProgress } from "../lib/progressService";
 
 export function Dashboard() {
   const navigate = useNavigate();
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
+  const [enrollments, setEnrollments] = useState<CourseEnrollment[]>([]);
+  const [progressData, setProgressData] = useState<Record<string, CourseProgress>>({});
   const [isLoading, setIsLoading] = useState(true);
+  const [currentUser, setCurrentUser] = useState<any>(null);
 
   useEffect(() => {
-    const unsubscribe = onAuthChange(async (currentUser) => {
-      if (currentUser) {
+    const unsubscribe = onAuthChange(async (authUser) => {
+      if (authUser) {
+        setCurrentUser(authUser);
+        
         // Fetch user profile from Firestore
-        const profile = await getUserProfile(currentUser.uid);
+        const profile = await getUserProfile(authUser.uid);
         setUserProfile(profile);
+        
+        // Fetch user enrollments
+        const userEnrollments = await getUserEnrollments(authUser.uid);
+        setEnrollments(userEnrollments);
+        
+        // Fetch progress for all courses
+        const progress = await getUserAllCourseProgress(authUser.uid);
+        const progressMap: Record<string, CourseProgress> = {};
+        progress.forEach((p) => {
+          if (p.courseId) {
+            progressMap[p.courseId] = p;
+          }
+        });
+        setProgressData(progressMap);
+        
         setIsLoading(false);
       } else {
         navigate("/login");

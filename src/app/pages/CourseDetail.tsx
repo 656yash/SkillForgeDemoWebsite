@@ -1,4 +1,5 @@
-import { useParams, Link } from "react-router";
+import { useParams, Link, useNavigate } from "react-router";
+import { useState, useEffect } from "react";
 import {
   Star,
   Clock,
@@ -15,9 +16,18 @@ import {
   TrendingUp,
   Globe
 } from "lucide-react";
+import { onAuthChange } from "../lib/firebase";
+import { enrollCourse, isUserEnrolled } from "../lib/enrollmentService";
+import { trackCourseView, trackCourseEnrollment } from "../lib/analyticsService";
+import { User } from "firebase/auth";
 
 export function CourseDetail() {
   const { id } = useParams();
+  const navigate = useNavigate();
+  const [user, setUser] = useState<User | null>(null);
+  const [isEnrolled, setIsEnrolled] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [enrollmentMessage, setEnrollmentMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null);
 
   const courseData: Record<string, any> = {
     "1": {
@@ -78,6 +88,75 @@ export function CourseDetail() {
 
   const course = courseData[id || "1"] || courseData["1"];
 
+  // Track page view and set up auth listener
+  useEffect(() => {
+    // Track course view analytics
+    trackCourseView(id || "1", course.title, course.category);
+
+    // Set up auth listener
+    const unsubscribe = onAuthChange((authUser) => {
+      setUser(authUser);
+      if (authUser) {
+        // Check if user is already enrolled
+        isUserEnrolled(authUser.uid, id || "1").then(setIsEnrolled);
+      } else {
+        setIsEnrolled(false);
+      }
+    });
+
+    return unsubscribe;
+  }, [id, course.title, course.category]);
+
+  // Handle enrollment
+  const handleEnroll = async () => {
+    if (!user) {
+      // Redirect to login if not authenticated
+      navigate('/login');
+      return;
+    }
+
+    if (isEnrolled) {
+      setEnrollmentMessage({ type: 'error', text: 'You are already enrolled in this course!' });
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      // Extract price as number (remove currency symbol and convert)
+      const price = parseInt(course.price.replace(/[^\d]/g, '') || '0');
+      
+      // Create enrollment
+      const enrollmentId = await enrollCourse(
+        user.uid,
+        user.email || '',
+        id || "1",
+        course.title,
+        price
+      );
+
+      if (enrollmentId) {
+        // Track enrollment analytics
+        trackCourseEnrollment(id || "1", course.title, price);
+
+        setIsEnrolled(true);
+        setEnrollmentMessage({ type: 'success', text: 'Successfully enrolled in the course!' });
+        
+        // Redirect to dashboard after 2 seconds
+        setTimeout(() => {
+          navigate('/dashboard');
+        }, 2000);
+      }
+    } catch (error: any) {
+      console.error('[v0] Enrollment error:', error);
+      setEnrollmentMessage({ 
+        type: 'error', 
+        text: error.message || 'Failed to enroll in the course. Please try again.' 
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-white pt-16">
       {/* Hero Section */}
@@ -132,9 +211,23 @@ export function CourseDetail() {
                     <div className="text-sm text-muted-foreground">One-time payment</div>
                   </div>
 
-                  <button className="w-full py-4 bg-primary text-white rounded-lg hover:bg-primary/90 transition-all font-medium shadow-lg shadow-primary/20">
-                    Enroll Now
+                  <button 
+                    onClick={handleEnroll}
+                    disabled={isLoading || isEnrolled}
+                    className="w-full py-4 bg-primary text-white rounded-lg hover:bg-primary/90 transition-all font-medium shadow-lg shadow-primary/20 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {isLoading ? 'Enrolling...' : isEnrolled ? 'Already Enrolled' : 'Enroll Now'}
                   </button>
+
+                  {enrollmentMessage && (
+                    <div className={`p-3 rounded-lg text-sm font-medium ${
+                      enrollmentMessage.type === 'success' 
+                        ? 'bg-green-50 text-green-800 border border-green-200' 
+                        : 'bg-red-50 text-red-800 border border-red-200'
+                    }`}>
+                      {enrollmentMessage.text}
+                    </div>
+                  )}
 
                   <div className="space-y-3 pt-4 border-t border-border">
                     <div className="flex items-center gap-3 text-sm">

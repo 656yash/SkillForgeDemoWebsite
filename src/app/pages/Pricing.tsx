@@ -1,9 +1,14 @@
 import { Link } from "react-router";
 import { Check, Zap, HelpCircle, ArrowRight } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { trackPricingPageView, trackPlanSelected } from "../lib/analyticsService";
 
 export function Pricing() {
   const [billingCycle, setBillingCycle] = useState<"monthly" | "annual">("monthly");
+
+  useEffect(() => {
+    trackPricingPageView();
+  }, []);
 
   const pricingPlans = [
     {
